@@ -21,9 +21,30 @@ export class CustomCommand extends Command {
 
       const filters: {[key: string]: string} = {}
       const dashboardFilters = dashboard.dashboard_filters || dashboard.filters
-      for (const filter of dashboardFilters) {
-        filters[filter.name] = query
+
+      // Parse query into multiple filter parts, optionally quoted
+      var queryParts = []
+      if (dashboardFilters.length === 1) {
+        // Special convenience case for single-filter dashboards
+        queryParts.push(query)
+      } else {
+        const splitRegex  = /[^\s"]+|"([^"]*)"/g
+        do {
+            var match = splitRegex.exec(query)
+            if (match != null)
+            {
+                queryParts.push(match[1] ? match[1] : match[0])
+            }
+        } while (match != null)
       }
+
+      const commonLength = Math.min(dashboardFilters.length, queryParts.length)
+      for (var i = 0; i < commonLength; i++) {
+        const filter = dashboardFilters[i]
+        const queryPart = queryParts[i]
+        filters[filter.name] = queryPart
+      }
+
       const runner = new DashboardQueryRunner(context, matchedCommand.dashboard, filters)
       runner.start()
 
